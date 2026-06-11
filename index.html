@@ -1,0 +1,593 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>OSS License Picker</title>
+<meta name="description" content="Pick the right open source license for your project. A short decision tree, plain-English summaries, and the full license text ready to paste.">
+<meta name="ai.description" content="Single-file HTML tool that walks the user through 4-5 questions and recommends an open source license. Covers the 8 most common: MIT, Apache 2.0, BSD-2-Clause, BSD-3-Clause, GPL-3.0, AGPL-3.0, MPL-2.0, Unlicense. Each result page includes a plain-English summary, the full license text with the user's name and year filled in, and 'why not the others' notes. Not legal advice. No frameworks, no dependencies. Light and dark themes.">
+<meta property="og:title" content="OSS License Picker">
+<meta property="og:description" content="Pick an open source license in 60 seconds.">
+<style>
+:root {
+  --bg: #fdfaf3;
+  --surface: #ffffff;
+  --surface-2: #f5f0e3;
+  --ink: #2b1d0e;
+  --ink-soft: #6b5840;
+  --rule: #d9cfb8;
+  --rule-strong: #2b1d0e;
+  --accent: #1d5a2c;
+  --accent-soft: #d9ead2;
+  --serif: "Iowan Old Style", "Charter", "Georgia", serif;
+  --sans: "Inter", ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --mono: ui-monospace, "JetBrains Mono", "SF Mono", Menlo, Consolas, monospace;
+  --warn: #8a4a00;
+  --warn-soft: #f5e4c8;
+}
+[data-theme="dark"] {
+  --bg: #1a160e;
+  --surface: #25201a;
+  --surface-2: #1f1b15;
+  --ink: #f5ecd6;
+  --ink-soft: #b8aa8a;
+  --rule: #3a3325;
+  --rule-strong: #f5ecd6;
+  --accent: #6dbf83;
+  --accent-soft: #1e3526;
+  --warn: #d99852;
+  --warn-soft: #3a2a14;
+}
+[data-theme="dark"] button.primary, [data-theme="dark"] a.primary { color: var(--bg) !important; }
+[data-theme="dark"] button.primary, [data-theme="dark"] a.primary { border-color: var(--accent) !important; }
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; } }
+
+body { font-family: var(--sans); background: var(--bg); color: var(--ink); line-height: 1.6; font-size: 15px; min-height: 100vh; }
+
+.skip-link { position: absolute; left: -9999px; top: 0; background: var(--accent); color: #fff; padding: 0.5rem 1rem; z-index: 100; font-weight: 600; }
+.skip-link:focus { left: 1rem; top: 1rem; }
+
+.layout { max-width: 760px; margin: 0 auto; padding: 2.5rem 1.5rem 4rem; }
+
+header { display: grid; grid-template-columns: 1fr auto; gap: 1.5rem; align-items: end; padding-bottom: 1.25rem; border-bottom: 2px solid var(--rule-strong); margin-bottom: 2rem; }
+.brand { font-family: var(--mono); font-size: 0.6875rem; letter-spacing: 0.18em; text-transform: uppercase; color: var(--ink-soft); margin-bottom: 0.5rem; font-weight: 600; }
+h1 { font-family: var(--serif); font-size: clamp(1.75rem, 4vw, 2.5rem); font-weight: 700; letter-spacing: -0.015em; line-height: 1.05; }
+h1 .accent { color: var(--accent); font-style: italic; }
+.subtitle { margin-top: 0.625rem; color: var(--ink-soft); font-size: 0.9375rem; max-width: 520px; }
+
+.theme-toggle { background: var(--surface); color: var(--ink); border: 1px solid var(--rule-strong); border-radius: 3px; padding: 0.5rem 0.75rem; font-size: 0.75rem; font-weight: 600; cursor: pointer; text-transform: uppercase; letter-spacing: 0.06em; display: inline-flex; align-items: center; gap: 0.4rem; flex-shrink: 0; font-family: var(--sans); }
+.theme-toggle:hover { background: var(--ink); color: var(--bg); }
+.theme-toggle:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.theme-toggle svg { width: 14px; height: 14px; }
+
+.card { background: var(--surface); border: 1px solid var(--rule); border-radius: 4px; padding: 1.5rem 1.5rem; margin-bottom: 1rem; }
+.q-num { font-family: var(--mono); font-size: 0.6875rem; font-weight: 700; letter-spacing: 0.08em; color: var(--accent); margin-bottom: 0.4rem; }
+.q-title { font-family: var(--serif); font-size: 1.375rem; font-weight: 600; line-height: 1.2; margin-bottom: 0.75rem; }
+.q-help { color: var(--ink-soft); font-size: 0.875rem; margin-bottom: 1.25rem; }
+
+.opt-list { display: flex; flex-direction: column; gap: 0.5rem; }
+button.opt { font: inherit; font-family: var(--sans); text-align: left; padding: 0.875rem 1rem; background: var(--surface-2); color: var(--ink); border: 1px solid var(--rule); border-radius: 3px; cursor: pointer; font-size: 0.9375rem; line-height: 1.5; display: block; width: 100%; }
+button.opt:hover { background: var(--accent-soft); border-color: var(--accent); }
+button.opt:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+button.opt strong { display: block; margin-bottom: 0.15rem; font-weight: 600; }
+button.opt .opt-help { color: var(--ink-soft); font-size: 0.8125rem; }
+
+.row { display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: center; margin-top: 1rem; }
+button.primary, button.secondary { font: inherit; font-family: var(--sans); font-size: 0.8125rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; padding: 0.55rem 1rem; border-radius: 3px; cursor: pointer; }
+button.primary { background: var(--accent); color: #fff; border: 1px solid var(--accent); }
+button.primary:hover { filter: brightness(0.92); }
+button.secondary { background: var(--surface); color: var(--ink); border: 1px solid var(--rule-strong); }
+button.secondary:hover { background: var(--ink); color: var(--bg); }
+button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* Result */
+.result-stamp { font-family: var(--mono); font-size: 0.75rem; font-weight: 700; letter-spacing: 0.08em; color: var(--accent); text-transform: uppercase; margin-bottom: 0.5rem; }
+.result-name { font-family: var(--serif); font-size: clamp(1.625rem, 4vw, 2.125rem); font-weight: 700; line-height: 1.1; margin-bottom: 0.4rem; }
+.result-tagline { color: var(--ink-soft); font-size: 0.9375rem; margin-bottom: 1.25rem; }
+.result-section { margin-top: 1.25rem; }
+.result-section h3 { font-family: var(--mono); font-size: 0.6875rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--accent); margin-bottom: 0.5rem; }
+.result-section p, .result-section li { font-size: 0.9375rem; line-height: 1.6; }
+.result-section ul { padding-left: 1.25rem; }
+.result-section ul li { margin-bottom: 0.25rem; }
+.result-section ul.tradeoffs li { color: var(--ink-soft); }
+.result-section ul.tradeoffs li b { color: var(--ink); }
+
+.fields { background: var(--surface-2); padding: 0.875rem 1rem; border-radius: 3px; margin-top: 1rem; display: grid; grid-template-columns: 1fr 120px; gap: 0.625rem; }
+.fields label { font-family: var(--mono); font-size: 0.6875rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--ink-soft); display: block; margin-bottom: 0.25rem; }
+.fields input { width: 100%; background: var(--surface); color: var(--ink); border: 1px solid var(--rule); border-radius: 3px; padding: 0.5rem 0.625rem; font-family: var(--mono); font-size: 0.875rem; }
+.fields input:focus { outline: 2px solid var(--accent); outline-offset: -1px; border-color: var(--accent); }
+
+pre.license-text { background: var(--surface-2); border: 1px solid var(--rule); border-radius: 3px; padding: 1rem; font-family: var(--mono); font-size: 0.8125rem; line-height: 1.55; white-space: pre-wrap; word-wrap: break-word; max-height: 360px; overflow-y: auto; margin-top: 0.625rem; }
+
+.disclaim { font-size: 0.75rem; color: var(--ink-soft); padding: 0.625rem 0.875rem; background: var(--warn-soft); border: 1px solid var(--warn); border-radius: 3px; margin-top: 1.25rem; line-height: 1.55; }
+.disclaim b { color: var(--warn); }
+
+footer { margin-top: 3rem; padding-top: 1.5rem; border-top: 1px solid var(--rule); font-size: 0.75rem; color: var(--ink-soft); line-height: 1.7; }
+footer a { color: var(--ink-soft); text-decoration: underline; text-underline-offset: 2px; }
+footer a:hover { color: var(--accent); }
+
+@media (max-width: 540px) {
+  .layout { padding: 1.5rem 1rem 3rem; }
+  header { grid-template-columns: 1fr; }
+  .fields { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body data-theme="light">
+<a href="#main" class="skip-link">Skip to main content</a>
+<div class="layout">
+  <header>
+    <div>
+      <div class="brand">OSS LICENSE PICKER</div>
+      <h1>Pick a <span class="accent">license.</span><br>Skip the legalese.</h1>
+      <p class="subtitle">Four questions, then a recommendation with the license text ready to paste. Not legal advice.</p>
+    </div>
+    <button type="button" class="theme-toggle" id="theme-btn" aria-label="Toggle dark theme" aria-pressed="false">
+      <svg id="theme-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"></path></svg>
+      <span id="theme-label">Dark</span>
+    </button>
+  </header>
+
+  <main id="main">
+    <div id="quiz-container"></div>
+  </main>
+
+  <footer>
+    <p>Source: <a href="https://github.com/0xelitesystem/oss-license-picker" target="_blank" rel="noopener">github.com/0xelitesystem/oss-license-picker</a></p>
+    <p>Related: <a href="https://github.com/0xelitesystem/legal-pages-starter" target="_blank" rel="noopener">legal-pages-starter</a> &middot; <a href="https://github.com/0xelitesystem/oss-readme-template" target="_blank" rel="noopener">oss-readme-template</a></p>
+    <p>Author of this picker is not a lawyer. License summaries are simplified for orientation. For commercial products, complex dependency chains, or anything involving patents, talk to a real attorney. Full license texts are SPDX-canonical.</p>
+  </footer>
+</div>
+
+<script>
+"use strict";
+
+const $ = (id) => document.getElementById(id);
+
+// =============================================================================
+// Decision tree
+// =============================================================================
+const QUESTIONS = [
+  {
+    id: "share_alike",
+    title: "If someone modifies your code, must they share their changes?",
+    help: "This is called 'copyleft.' Strong copyleft forces modifications to be open source too. Permissive licenses don't.",
+    options: [
+      { label: "No, anyone can use it however they want", help: "Most permissive. Use in proprietary products, no return required.", next: "patents" },
+      { label: "Yes, modifications must be shared as open source", help: "Copyleft. Common for libraries you want to keep open.", next: "network_use" },
+      { label: "Only the file they changed, not their whole project", help: "Weak/file-level copyleft. A middle ground.", result: "MPL-2.0" }
+    ]
+  },
+  {
+    id: "patents",
+    title: "Do you want explicit patent protection for your users?",
+    help: "Some licenses include a patent grant: contributors agree their patents won't be enforced against users. Important if your code might involve patentable techniques (algorithms, protocols, hardware interfaces).",
+    options: [
+      { label: "Yes, include a patent grant", help: "Apache 2.0 is the standard for this.", result: "Apache-2.0" },
+      { label: "No, keep it simple", help: "MIT and BSD don't address patents.", next: "attribution_style" },
+      { label: "Public domain, no rights reserved at all", help: "The Unlicense. Use only if you're certain.", result: "Unlicense" }
+    ]
+  },
+  {
+    id: "attribution_style",
+    title: "How strict should the attribution clause be?",
+    help: "Most permissive licenses require keeping the copyright notice in distributed code. They differ on small details about what else is forbidden.",
+    options: [
+      { label: "Minimum: just keep the copyright notice", help: "MIT. The most popular OSS license. Used by React, Rails, .NET Core.", result: "MIT" },
+      { label: "Also forbid using my name to endorse derived products", help: "BSD 3-Clause. Used by Go, Django.", result: "BSD-3-Clause" },
+      { label: "Just attribution, no endorsement clause", help: "BSD 2-Clause. Simpler than 3-clause.", result: "BSD-2-Clause" }
+    ]
+  },
+  {
+    id: "network_use",
+    title: "Does running your code over a network count as 'distribution'?",
+    help: "If your project is a library, this rarely matters. If it might be run as a hosted SaaS by someone else, AGPL closes the 'SaaS loophole' that GPL leaves open.",
+    options: [
+      { label: "No, only distributing the binary triggers copyleft", help: "GPL-3.0. The classic strong copyleft.", result: "GPL-3.0" },
+      { label: "Yes, even SaaS providers must share modifications", help: "AGPL-3.0. Used by MongoDB (originally), Mastodon.", result: "AGPL-3.0" }
+    ]
+  }
+];
+
+// =============================================================================
+// License data
+// =============================================================================
+const LICENSES = {
+  "MIT": {
+    name: "MIT License",
+    spdx: "MIT",
+    tagline: "The most popular OSS license. Permissive, short, used everywhere.",
+    when: ["You want maximum adoption.", "You're fine with proprietary use.", "You want a license everyone already understands."],
+    tradeoffs: [
+      ["No patent grant.", "If patents matter, look at Apache 2.0 instead."],
+      ["No copyleft.", "Anyone can fork your code into a closed-source product without contributing back."]
+    ],
+    notOthers: ["Apache 2.0: also permissive but longer and more formal. Use if you need a patent grant.", "BSD: nearly identical to MIT in practice. Pick MIT for ecosystem familiarity."],
+    text: (n, y) => `MIT License
+
+Copyright (c) ${y} ${n}
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.`
+  },
+  "Apache-2.0": {
+    name: "Apache License 2.0",
+    spdx: "Apache-2.0",
+    tagline: "Permissive, with an explicit patent grant. Standard at large companies.",
+    when: ["Your code might involve patentable techniques.", "You want corporate adoption (Google, Microsoft, IBM all default to Apache 2.0).", "You're OK with a longer license file."],
+    tradeoffs: [
+      ["Long license text.", "Some find it intimidating in small projects."],
+      ["Header notice required on each file.", "More overhead than MIT/BSD for a small library."]
+    ],
+    notOthers: ["MIT: shorter, but no patent grant.", "GPL: copyleft, less adoption-friendly."],
+    text: (n, y) => `Copyright ${y} ${n}
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+
+(Full text: https://www.apache.org/licenses/LICENSE-2.0.txt
+Copy that file as LICENSE in your repository, then add this short
+header to each source file you author.)`
+  },
+  "BSD-2-Clause": {
+    name: "BSD 2-Clause License",
+    spdx: "BSD-2-Clause",
+    tagline: "Permissive. Functionally close to MIT.",
+    when: ["You like the BSD heritage.", "You want something almost identical to MIT but slightly more formal."],
+    tradeoffs: [
+      ["Less ecosystem recognition than MIT.", "MIT is the default for most communities."]
+    ],
+    notOthers: ["MIT: same effect, more familiar.", "BSD 3-Clause: adds a no-endorsement clause."],
+    text: (n, y) => `BSD 2-Clause License
+
+Copyright (c) ${y}, ${n}
+All rights reserved.
+
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions are met:
+
+1. Redistributions of source code must retain the above copyright notice, this
+   list of conditions and the following disclaimer.
+
+2. Redistributions in binary form must reproduce the above copyright notice,
+   this list of conditions and the following disclaimer in the documentation
+   and/or other materials provided with the distribution.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.`
+  },
+  "BSD-3-Clause": {
+    name: "BSD 3-Clause License",
+    spdx: "BSD-3-Clause",
+    tagline: "Permissive, with a no-endorsement clause. Used by Go and Django.",
+    when: ["You don't want your name used to promote derived products.", "Heritage projects (Go, Django, NetBSD-derived code)."],
+    tradeoffs: [
+      ["The endorsement clause rarely changes anything in practice.", "Most adopt it for tradition, not legal effect."]
+    ],
+    notOthers: ["MIT: shorter, more common.", "BSD 2-Clause: drops the endorsement clause."],
+    text: (n, y) => `BSD 3-Clause License
+
+Copyright (c) ${y}, ${n}
+All rights reserved.
+
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions are met:
+
+1. Redistributions of source code must retain the above copyright notice, this
+   list of conditions and the following disclaimer.
+
+2. Redistributions in binary form must reproduce the above copyright notice,
+   this list of conditions and the following disclaimer in the documentation
+   and/or other materials provided with the distribution.
+
+3. Neither the name of the copyright holder nor the names of its contributors
+   may be used to endorse or promote products derived from this software
+   without specific prior written permission.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.`
+  },
+  "GPL-3.0": {
+    name: "GNU General Public License v3.0",
+    spdx: "GPL-3.0-or-later",
+    tagline: "Strong copyleft. Modifications must be shared. Includes patent protection.",
+    when: ["You want all forks to remain open source.", "You're philosophically committed to free software.", "Your project is end-user software, not a library."],
+    tradeoffs: [
+      ["Many companies avoid GPL code in commercial products.", "Reduces adoption in enterprise contexts."],
+      ["Long license text.", "Adds friction for casual contributors."],
+      ["Doesn't cover SaaS providers.", "AGPL closes that loophole."]
+    ],
+    notOthers: ["AGPL: closes the SaaS loophole.", "MPL 2.0: weak copyleft, easier corporate adoption.", "MIT/Apache: permissive, much higher adoption rate."],
+    text: (n, y) => `Copyright (C) ${y} ${n}
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program. If not, see <https://www.gnu.org/licenses/>.
+
+(Full text: https://www.gnu.org/licenses/gpl-3.0.txt
+Copy that file as LICENSE in your repository, then add the above
+short notice as a header to each source file you author.)`
+  },
+  "AGPL-3.0": {
+    name: "GNU Affero General Public License v3.0",
+    spdx: "AGPL-3.0-or-later",
+    tagline: "GPL plus the network use clause. Closes the SaaS loophole.",
+    when: ["Your project might be run as a hosted service.", "You want SaaS providers to also share their modifications.", "Examples: MongoDB (originally), Mastodon, Nextcloud."],
+    tradeoffs: [
+      ["Even more companies avoid AGPL than GPL.", "Google's open source policy explicitly bans AGPL."],
+      ["Compliance is harder for the user (must offer source over the network)."]
+    ],
+    notOthers: ["GPL-3.0: doesn't apply to SaaS use.", "BSL / Sustainable Use License: 'source-available' alternatives that aren't OSI-approved."],
+    text: (n, y) => `Copyright (C) ${y} ${n}
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU Affero General Public License as
+published by the Free Software Foundation, either version 3 of the
+License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+GNU Affero General Public License for more details.
+
+You should have received a copy of the GNU Affero General Public License
+along with this program. If not, see <https://www.gnu.org/licenses/>.
+
+(Full text: https://www.gnu.org/licenses/agpl-3.0.txt
+Copy that file as LICENSE in your repository, then add the above
+short notice as a header to each source file you author.)`
+  },
+  "MPL-2.0": {
+    name: "Mozilla Public License 2.0",
+    spdx: "MPL-2.0",
+    tagline: "Weak copyleft at the file level. A middle ground.",
+    when: ["You want some copyleft protection without scaring off corporate adopters.", "You're OK with users mixing your code into proprietary projects, as long as the original files stay open."],
+    tradeoffs: [
+      ["File-level copyleft is unusual.", "Less well understood than MIT or GPL."],
+      ["Mixing with GPL is allowed but adds complexity."]
+    ],
+    notOthers: ["GPL: full copyleft, restricts mixing with proprietary.", "MIT: no copyleft at all."],
+    text: (n, y) => `Copyright (c) ${y} ${n}
+
+This Source Code Form is subject to the terms of the Mozilla Public
+License, v. 2.0. If a copy of the MPL was not distributed with this
+file, You can obtain one at https://mozilla.org/MPL/2.0/.
+
+(Full text: https://www.mozilla.org/en-US/MPL/2.0/
+Save that file as LICENSE in your repository, then add the above
+short notice as a header to each source file under MPL.)`
+  },
+  "Unlicense": {
+    name: "The Unlicense",
+    spdx: "Unlicense",
+    tagline: "Public domain dedication. No rights reserved at all.",
+    when: ["You want to dedicate your work to the public domain.", "You don't want any attribution requirement.", "Examples: SQLite (sort of), youtube-dl."],
+    tradeoffs: [
+      ["Public domain isn't legally clean in all jurisdictions.", "Some countries don't recognize the concept."],
+      ["No warranty disclaimer is bundled in some interpretations.", "CC0 is a more legally robust 'no rights reserved' alternative."]
+    ],
+    notOthers: ["MIT: requires attribution but is universally understood.", "CC0: similar intent, more legally robust internationally."],
+    text: (_n, _y) => `This is free and unencumbered software released into the public domain.
+
+Anyone is free to copy, modify, publish, use, compile, sell, or
+distribute this software, either in source code form or as a compiled
+binary, for any purpose, commercial or non-commercial, and by any
+means.
+
+In jurisdictions that recognize copyright laws, the author or authors
+of this software dedicate any and all copyright interest in the
+software to the public domain. We make this dedication for the benefit
+of the public at large and to the detriment of our heirs and
+successors. We intend this dedication to be an overt act of
+relinquishment in perpetuity of all present and future rights to this
+software under copyright law.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+IN NO EVENT SHALL THE AUTHORS BE LIABLE FOR ANY CLAIM, DAMAGES OR
+OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
+ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+OTHER DEALINGS IN THE SOFTWARE.
+
+For more information, please refer to <https://unlicense.org>`
+  }
+};
+
+// =============================================================================
+// State + render
+// =============================================================================
+let path = []; // [questionId, answerIdx, ...]
+let currentQ = QUESTIONS[0];
+
+const escapeHtml = (s) => String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+
+function renderQuestion(q, qNumber) {
+  const c = $("quiz-container");
+  let html = `<div class="card">
+    <div class="q-num">QUESTION ${qNumber}</div>
+    <h2 class="q-title">${escapeHtml(q.title)}</h2>
+    <p class="q-help">${escapeHtml(q.help)}</p>
+    <div class="opt-list">`;
+  q.options.forEach((opt, i) => {
+    html += `<button type="button" class="opt" data-idx="${i}">
+      <strong>${escapeHtml(opt.label)}</strong>
+      <span class="opt-help">${escapeHtml(opt.help)}</span>
+    </button>`;
+  });
+  html += `</div>`;
+  if (path.length > 0) {
+    html += `<div class="row"><button type="button" class="secondary" id="back-btn">Back</button></div>`;
+  }
+  html += `</div>`;
+  c.innerHTML = html;
+
+  c.querySelectorAll(".opt").forEach(b => b.addEventListener("click", () => choose(parseInt(b.dataset.idx))));
+  if ($("back-btn")) $("back-btn").addEventListener("click", goBack);
+}
+
+function choose(idx) {
+  const q = currentQ;
+  const opt = q.options[idx];
+  path.push({ qId: q.id, optIdx: idx });
+  if (opt.result) { renderResult(opt.result); return; }
+  if (opt.next) {
+    currentQ = QUESTIONS.find(x => x.id === opt.next);
+    renderQuestion(currentQ, path.length + 1);
+  }
+}
+
+function goBack() {
+  if (path.length === 0) return;
+  path.pop();
+  if (path.length === 0) {
+    currentQ = QUESTIONS[0];
+  } else {
+    const prev = path[path.length - 1];
+    const prevQ = QUESTIONS.find(x => x.id === prev.qId);
+    currentQ = QUESTIONS.find(x => x.id === prevQ.options[prev.optIdx].next);
+  }
+  renderQuestion(currentQ, path.length + 1);
+}
+
+function renderResult(licenseId) {
+  const lic = LICENSES[licenseId];
+  const c = $("quiz-container");
+  const year = new Date().getFullYear();
+  c.innerHTML = `<div class="card">
+    <div class="result-stamp">RECOMMENDED // ${escapeHtml(lic.spdx)}</div>
+    <h2 class="result-name">${escapeHtml(lic.name)}</h2>
+    <p class="result-tagline">${escapeHtml(lic.tagline)}</p>
+
+    <div class="fields">
+      <div>
+        <label for="copyright-name">Copyright holder</label>
+        <input type="text" id="copyright-name" value="Your Name or Org" autocomplete="off">
+      </div>
+      <div>
+        <label for="copyright-year">Year</label>
+        <input type="text" id="copyright-year" value="${year}" autocomplete="off">
+      </div>
+    </div>
+
+    <div class="result-section">
+      <h3>Use this when</h3>
+      <ul>${lic.when.map(w => `<li>${escapeHtml(w)}</li>`).join("")}</ul>
+    </div>
+
+    <div class="result-section">
+      <h3>Trade-offs</h3>
+      <ul class="tradeoffs">${lic.tradeoffs.map(t => `<li><b>${escapeHtml(t[0])}</b> ${escapeHtml(t[1])}</li>`).join("")}</ul>
+    </div>
+
+    <div class="result-section">
+      <h3>Why not the others</h3>
+      <ul>${lic.notOthers.map(o => `<li>${escapeHtml(o)}</li>`).join("")}</ul>
+    </div>
+
+    <div class="result-section">
+      <h3>License text (paste into LICENSE)</h3>
+      <pre class="license-text" id="license-text-output">${escapeHtml(lic.text("Your Name or Org", year))}</pre>
+      <div class="row">
+        <button type="button" class="primary" id="copy-btn">Copy</button>
+        <button type="button" class="secondary" id="restart-btn">Start over</button>
+      </div>
+      <div id="copy-status" role="status" aria-live="polite"></div>
+    </div>
+
+    <div class="disclaim"><b>Not legal advice.</b> This tool gives orientation, not counsel. Real-world licensing is affected by your dependencies, contributor agreements, and jurisdiction. For commercial software with patent exposure, talk to an attorney.</div>
+  </div>`;
+
+  // Wire up the live name/year update
+  const updatePreview = () => {
+    const n = $("copyright-name").value || "Your Name or Org";
+    const y = $("copyright-year").value || year;
+    $("license-text-output").textContent = lic.text(n, y);
+  };
+  $("copyright-name").addEventListener("input", updatePreview);
+  $("copyright-year").addEventListener("input", updatePreview);
+
+  $("copy-btn").addEventListener("click", async () => {
+    try {
+      await navigator.clipboard.writeText($("license-text-output").textContent);
+      $("copy-status").innerHTML = `<div style="margin-top:0.5rem;font-family:var(--mono);font-size:0.75rem;color:var(--accent);">Copied. Paste into a file named LICENSE in your repo root.</div>`;
+    } catch {
+      $("copy-status").innerHTML = `<div style="margin-top:0.5rem;font-family:var(--mono);font-size:0.75rem;color:var(--warn);">Clipboard blocked. Select the text manually.</div>`;
+    }
+  });
+  $("restart-btn").addEventListener("click", () => { path = []; currentQ = QUESTIONS[0]; renderQuestion(currentQ, 1); });
+}
+
+// =============================================================================
+// Theme
+// =============================================================================
+function applyTheme(theme) {
+  document.body.dataset.theme = theme;
+  $("theme-label").textContent = theme === "dark" ? "Light" : "Dark";
+  $("theme-btn").setAttribute("aria-pressed", String(theme === "dark"));
+  const icon = $("theme-icon");
+  if (theme === "dark") {
+    icon.innerHTML = '<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>';
+  } else {
+    icon.innerHTML = '<circle cx="12" cy="12" r="4"></circle><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"></path>';
+  }
+}
+$("theme-btn").addEventListener("click", () => applyTheme(document.body.dataset.theme === "dark" ? "light" : "dark"));
+if (window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches) applyTheme("dark");
+
+// Initial
+renderQuestion(currentQ, 1);
+</script>
+</body>
+</html>
