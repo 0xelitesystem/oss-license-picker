@@ -50,6 +50,10 @@ For each one, the result page shows: when to use it, the trade-offs, why-not-the
 - WCAG AA contrast on both themes
 - Keyboard accessible
 
+## More
+
+Part of a catalog of single-file browser tools and plain-language references, all MIT licensed and dependency-free: [0xelitesystem.github.io](https://0xelitesystem.github.io/). Built by [elitesystem.ai](https://elitesystem.ai).
+
 ## License
 
 This tool itself is MIT licensed. See [LICENSE](LICENSE).
