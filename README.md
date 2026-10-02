@@ -4,13 +4,13 @@ Pick the right open source license for your project. Four questions, plain-Engli
 
 **Live demo:** https://0xelitesystem.github.io/oss-license-picker/
 
-## Why
+## Why this exists
 
 Choosing a license is a 10-minute task that most developers turn into a 0-minute task by defaulting to MIT. MIT is fine for most projects, but not all. If you're building a library that touches patentable techniques, or a product you'd rather not have wrapped into a closed-source competitor, the right answer is different.
 
 This tool walks you through the questions that actually matter and gives you the license text with your name and year filled in.
 
-## Use it
+## Use
 
 Open `index.html` in any browser. Or visit `https://0xelitesystem.github.io/oss-license-picker/` once Pages is enabled.
 
@@ -18,6 +18,23 @@ Open `index.html` in any browser. Or visit `https://0xelitesystem.github.io/oss-
 2. Get a recommendation with plain-English summary
 3. Type your name and year into the form
 4. Click Copy, paste into a file named `LICENSE` in your repo root
+
+## Privacy
+
+Everything runs in your browser. All license text is embedded in the page, so it makes no network requests, and the name and year you type are only used to fill in the text on screen. Copy only writes to your clipboard. The only thing the page writes to your browser is your light or dark theme choice, saved in localStorage under the key `theme` when you press the theme button, so the page opens in the same theme next time. Clear site data to remove it.
+
+## Run locally
+
+```
+git clone https://github.com/0xelitesystem/oss-license-picker
+cd oss-license-picker
+```
+
+Then open `index.html` in any browser. Or serve the folder with `python -m http.server` and visit http://localhost:8000.
+
+## Build
+
+No build step. The whole tool is one file, `index.html`, with its CSS and JavaScript inline.
 
 ## Licenses covered
 
